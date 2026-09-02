@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flight Recovery — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-app: #eef1f4;
+    --bg-screen: #f5f6f8;
+    --card-bg: #ffffff;
+    --text-primary: #16233a;
+    --text-secondary: #6b7688;
+    --text-tertiary: #9aa3b2;
+    --border: #e4e7ec;
+    --border-strong: #d8dce3;
+
+    --blue-600: #2f6690;
+    --blue-700: #1f4d70;
+    --blue-800: #163a56;
+    --blue-tint: #eaf1f6;
+
+    --red-600: #e5484d;
+    --red-tint: #fdecec;
+    --red-border: #f6c6c6;
+
+    --green-700: #1a8f5a;
+    --amber-500: #c98a1c;
+    --amber-tint: #fdf1dc;
+    --amber-border: #f2ddad;
+
+    --indigo-500: #635bff;
+
+    --radius-xl: 22px;
+    --radius-lg: 18px;
+    --radius-md: 14px;
+    --radius-full: 999px;
+
+    --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --shadow-pop: 0 12px 32px rgba(16,24,40,.18);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Inter',-apple-system,sans-serif;
+    background: var(--bg-app);
+    color: var(--text-primary);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:40px 16px;
+    min-height:100vh;
+  }
+
+  /* ---------- Phone shell ---------- */
+  .phone{
+    width:390px;
+    height:844px;
+    background: var(--bg-screen);
+    border-radius:44px;
+    box-shadow: 0 30px 60px rgba(16,24,40,.28), 0 0 0 10px #0b0e14, 0 0 0 12px #262b36;
+    position:relative;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .notch{
+    position:absolute;
+    top:0; left:50%; transform:translateX(-50%);
+    width:120px; height:28px;
+    background:#0b0e14;
+    border-radius:0 0 18px 18px;
+    z-index:50;
+  }
+  .statusbar{
+    position:absolute; top:0; left:0; right:0;
+    height:46px;
+    display:flex; align-items:flex-end;
+    justify-content:space-between;
+    padding:0 24px 8px 24px;
+    font-size:14px; font-weight:600;
+    color:var(--text-primary);
+    z-index:40;
+  }
+  .statusbar .icons{display:flex; align-items:center; gap:5px;}
+
+  .screens{
+    position:absolute;
+    inset:0;
+    top:46px;
+    overflow:hidden;
+  }
+  .screen{
+    position:absolute;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    overflow-y:auto;
+    background:var(--bg-screen);
+    -webkit-overflow-scrolling:touch;
+  }
+  .screen.active{display:flex; animation: screenIn .28s ease;}
+  @keyframes screenIn{
+    from{opacity:0; transform:translateX(14px);}
+    to{opacity:1; transform:translateX(0);}
+  }
+  .screen::-webkit-scrollbar{display:none;}
+
+  /* ---------- Nav header ---------- */
+  .nav-header{
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+    padding:14px 20px 16px;
+    background:#fff;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .nav-title{font-size:17px; font-weight:700; color:var(--text-primary);}
+  .back-btn{
+    position:absolute; left:18px; top:10px;
+    width:34px; height:34px;
+    border-radius:50%;
+    border:1px solid var(--border-strong);
+    background:#fff;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    color:var(--text-primary);
+    padding:0;
+  }
+  .back-btn svg{width:16px; height:16px;}
+  .back-btn:active{background:#f2f3f5;}
+
+  .content{
+    padding:20px 20px 28px;
+    flex:1;
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    width:100%;
+    border:none;
+    border-radius:var(--radius-full);
+    padding:16px 20px;
+    font-family:inherit;
+    font-size:15.5px;
+    font-weight:700;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    gap:8px;
+    transition:filter .15s ease, transform .05s ease;
+  }
+  .btn:active{transform:scale(.985);}
+  .btn-primary{
+    background: var(--blue-600);
+    color:#fff;
+  }
+  .btn-primary:hover{filter:brightness(1.05);}
+  .btn-dark{
+    background: linear-gradient(180deg,#1f4d70,#123049);
+    color:#fff;
+  }
+  .btn-outline{
+    background:#fff;
+    color:var(--text-primary);
+    border:1px solid var(--border-strong);
+    font-weight:700;
+  }
+  .btn-link{
+    display:block;
+    width:100%;
+    text-align:center;
+    background:none;
+    border:none;
+    color: var(--text-secondary);
+    font-size:14.5px;
+    font-weight:600;
+    padding:14px 0 6px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .btn-link:active{opacity:.7;}
+  .btn-select{
+    padding:11px 22px;
+    font-size:14.5px;
+    border-radius:var(--radius-full);
+    border:1px solid var(--border-strong);
+    background:#fff;
+    color:var(--text-primary);
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .btn-select:active{background:#f2f3f5;}
+
+  /* ---------- Alert box ---------- */
+  .alert-box{
+    background: var(--red-tint);
+    border:1px solid var(--red-border);
+    border-radius:var(--radius-lg);
+    padding:16px;
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    margin-bottom:24px;
+  }
+  .alert-icon{
+    width:40px; height:40px; border-radius:50%;
+    background:var(--red-600);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .alert-icon svg{width:20px; height:20px; fill:#fff;}
+  .alert-title{font-size:17px; font-weight:700; color:var(--red-600); margin:0 0 2px;}
+  .alert-sub{font-size:13.5px; color:var(--red-600); opacity:.85; margin:0;}
+
+  h1.page-h{font-size:21px; font-weight:800; margin:0 0 10px; line-height:1.3;}
+  p.page-p{font-size:14.5px; color:var(--text-secondary); line-height:1.55; margin:0 0 22px;}
+
+  /* ---------- Flight card ---------- */
+  .flight-card{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:18px;
+    box-shadow:var(--shadow-card);
+    margin-bottom:18px;
+  }
+  .flight-row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px;
+  }
+  .flight-time{font-size:22px; font-weight:800; line-height:1;}
+  .flight-time.struck{text-decoration:line-through; color:var(--text-tertiary); font-weight:700;}
+  .flight-code{font-size:13px; color:var(--text-secondary); font-weight:600; margin-top:4px;}
+  .flight-mid{
+    flex:1;
+    display:flex; flex-direction:column; align-items:center;
+    gap:4px;
+    padding:0 6px;
+    color:var(--text-tertiary);
+  }
+  .flight-mid .line{width:100%; height:1px; background:var(--border-strong); position:relative;}
+  .flight-mid .plane{font-size:14px; margin-top:-8px;}
+  .flight-mid .dur{font-size:11.5px; color:var(--text-secondary); font-weight:600; white-space:nowrap;}
+  .flight-badges{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;}
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:5px 12px;
+    border-radius:var(--radius-full);
+    font-size:12.5px;
+    font-weight:700;
+  }
+  .pill-red{background:#fbe3e3; color:var(--red-600);}
+  .pill-gray{background:#eef0f3; color:var(--text-secondary);}
+  .pill-black{background:#16233a; color:#fff;}
+  .pill-amber{background:var(--amber-tint); color:var(--amber-500); border:1px solid var(--amber-border);}
+  .pill-blue{background:var(--blue-tint); color:var(--blue-700);}
+  .pill-outline{background:#fff; border:1px solid var(--border-strong); color:var(--blue-700);}
+
+  /* ---------- Section label ---------- */
+  .section-label{
+    font-size:12px; font-weight:700; letter-spacing:.02em;
+    color:var(--text-tertiary);
+    margin:0 0 8px;
+    text-transform:uppercase;
+  }
+  .value-lg{font-size:16.5px; font-weight:700; margin:0 0 20px;}
+
+  /* ---------- Deadline box ---------- */
+  .deadline-box{
+    background:#e9ecf0;
+    border-radius:var(--radius-lg);
+    padding:16px 18px;
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:22px;
+  }
+  .deadline-label{font-size:13px; color:var(--text-secondary); font-weight:600; margin:0 0 4px;}
+  .deadline-time{font-size:19px; font-weight:800; margin:0;}
+
+  /* ---------- Option row (trip details) ---------- */
+  .option-row{
+    background:#fff;
+    border:1px solid var(--border-strong);
+    border-radius:var(--radius-lg);
+    padding:14px 16px;
+    display:flex; align-items:center; gap:14px;
+    margin-bottom:12px;
+    cursor:pointer;
+    transition:background .12s ease;
+  }
+  .option-row:active{background:#f7f8f9;}
+  .option-icon{
+    width:42px; height:42px; border-radius:12px;
+    background:var(--blue-tint);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .option-icon svg{width:20px; height:20px;}
+  .option-icon.neutral{background:#eef0f3;}
+  .option-title{font-size:15.5px; font-weight:700; margin:0 0 2px;}
+  .option-sub{font-size:13px; color:var(--text-secondary); margin:0;}
+  .option-chev{margin-left:auto; color:var(--text-tertiary); flex-shrink:0;}
+  .option-chev svg{width:16px; height:16px;}
+
+  /* ---------- AI badge / assist ---------- */
+  .ai-pill{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid #bcd6e8;
+    color:var(--blue-700);
+    background:#fff;
+    padding:8px 16px;
+    border-radius:var(--radius-full);
+    font-size:14px; font-weight:700;
+    margin-bottom:22px;
+  }
+  .ai-pill svg{width:15px; height:15px;}
+
+  .checklist{margin:22px 0;}
+  .check-row{
+    display:flex; align-items:center; gap:14px;
+    padding:11px 0;
+  }
+  .check-mark{
+    width:26px; height:26px; border-radius:50%;
+    background:#e7edf2; color:var(--blue-700);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .check-mark svg{width:13px; height:13px;}
+  .check-row span{font-size:15.5px; font-weight:500; color:var(--text-primary);}
+
+  .note-box{
+    background:#e9f1f7;
+    border-radius:var(--radius-md);
+    padding:14px 16px;
+    font-size:13.5px;
+    color:var(--blue-700);
+    line-height:1.55;
+    font-weight:500;
+  }
+
+  /* ---------- Flight option cards (screen 4) ---------- */
+  .opt-card{
+    background:#fff;
+    border:1.5px solid var(--border-strong);
+    border-radius:var(--radius-xl);
+    padding:20px;
+    margin-bottom:16px;
+    transition:border-color .15s ease;
+  }
+  .opt-card.recommended{border-color:var(--blue-600); box-shadow:0 4px 18px rgba(47,102,144,.12);}
+  .opt-card.risky{border-color:var(--amber-border);}
+  .opt-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .opt-fare{font-size:13.5px; font-weight:700; color:var(--green-700);}
+  .opt-fare.paid{color:var(--amber-500);}
+  .opt-times{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .opt-time{font-size:26px; font-weight:800;}
+  .opt-meta-grid{display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;}
+  .opt-meta-label{font-size:12.5px; color:var(--text-secondary); font-weight:600; margin:0 0 3px;}
+  .opt-meta-val{font-size:15px; font-weight:800;}
+  .opt-meta-val.good{color:var(--green-700);}
+  .opt-meta-val.medium{color:var(--amber-500);}
+  .divider{height:1px; background:var(--border); margin:16px 0;}
+  .why-pill{
+    display:inline-flex; align-items:center; gap:6px;
+    color:var(--blue-700); font-size:13.5px; font-weight:700;
+    background:#fff; border:1px solid #bcd6e8;
+    padding:7px 14px; border-radius:var(--radius-full);
+    margin-bottom:12px; cursor:pointer;
+  }
+  .why-pill svg{width:13px; height:13px;}
+  .reason-row{display:flex; gap:10px; align-items:flex-start; margin-bottom:16px;}
+  .reason-row .check-mark{width:20px; height:20px;}
+  .reason-row .check-mark svg{width:10px; height:10px;}
+  .reason-row p{font-size:13.5px; color:var(--text-secondary); line-height:1.5; margin:0;}
+  .warn-inline{
+    display:flex; align-items:center; gap:10px;
+    background:var(--amber-tint); border:1px solid var(--amber-border);
+    border-radius:var(--radius-md);
+    padding:12px 14px;
+    font-size:13px; font-weight:600; color:#8a5a13;
+    margin-bottom:16px;
+  }
+  .warn-inline svg{width:16px; height:16px; flex-shrink:0;}
+  .opt-footer{display:flex; align-items:center; justify-content:space-between; gap:14px;}
+  .opt-footer p{font-size:13px; color:var(--text-secondary); margin:0; line-height:1.4; flex:1;}
+
+  /* ---------- Recommendation card ---------- */
+  .reco-card{
+    background:#fff;
+    border:1.5px solid var(--blue-600);
+    border-radius:var(--radius-xl);
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 6px 20px rgba(47,102,144,.14);
+  }
+
+  /* ---------- Detail rows (review) ---------- */
+  .detail-card{
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:4px 18px;
+    margin-bottom:18px;
+  }
+  .detail-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:15px 0;
+    border-bottom:1px solid var(--border);
+    gap:14px;
+  }
+  .detail-row:last-child{border-bottom:none;}
+  .detail-row .k{font-size:14.5px; color:var(--text-secondary); font-weight:500;}
+  .detail-row .v{font-size:14.5px; font-weight:700; text-align:right;}
+  .detail-row .v.green{color:var(--green-700);}
+  .detail-row .v.amber{color:var(--amber-500);}
+
+  /* ---------- Success ---------- */
+  .success-wrap{text-align:center; padding:26px 0 10px;}
+  .success-icon-wrap{position:relative; width:120px; height:100px; margin:0 auto 26px;}
+  .success-circle{
+    width:74px; height:74px; border-radius:50%;
+    background:var(--indigo-500);
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto;
+    box-shadow:0 10px 24px rgba(99,91,255,.35);
+  }
+  .success-circle svg{width:34px; height:34px; stroke:#fff;}
+  .spark{position:absolute; color:var(--indigo-500);}
+  .success-title{font-size:24px; font-weight:800; margin:0 0 8px;}
+  .success-sub{font-size:15px; color:var(--text-secondary); margin:0 0 26px;}
+
+  .buffer-note{
+    display:flex; gap:12px; align-items:flex-start;
+    background:var(--blue-tint);
+    border-radius:var(--radius-lg);
+    padding:16px;
+    margin-bottom:26px;
+    text-align:left;
+  }
+  .buffer-note svg{width:19px; height:19px; color:var(--blue-700); flex-shrink:0; margin-top:2px;}
+  .buffer-note .t{font-size:14.5px; font-weight:700; color:var(--blue-700); margin:0 0 3px;}
+  .buffer-note .d{font-size:13.5px; color:var(--text-secondary); margin:0; line-height:1.5;}
+
+  /* ---------- Next steps ---------- */
+  .step-row{display:flex; gap:14px; margin-bottom:24px; align-items:flex-start;}
+  .step-icon{
+    width:42px; height:42px; border-radius:12px;
+    border:1px solid var(--border-strong);
+    background:#fff;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .step-icon svg{width:19px; height:19px;}
+  .step-title{font-size:15.5px; font-weight:700; margin:0 0 4px;}
+  .step-sub{font-size:13.5px; color:var(--text-secondary); margin:0; line-height:1.5;}
+  .talk-box{
+    display:flex; align-items:center; justify-content:space-between;
+    background:#fff; border:1px solid var(--border-strong);
+    border-radius:var(--radius-lg);
+    padding:16px 18px;
+    margin-top:6px;
+  }
+  .talk-box .t{font-size:15px; font-weight:700;}
+  .talk-link{display:flex; align-items:center; gap:6px; color:var(--blue-700); font-weight:700; font-size:14.5px;}
+  .talk-link svg{width:16px; height:16px;}
+
+  /* ---------- Loading / progress (AI analysis) ---------- */
+  .check-mark.pending{background:#eef0f3; color:var(--text-tertiary);}
+  .check-mark.done{background:var(--blue-tint); color:var(--blue-700);}
+
+  /* ---------- Edge-case launcher ---------- */
+  .demo-fab{
+    position:fixed;
+    right: calc(50% - 195px + 14px);
+    bottom:26px;
+    z-index:999;
+    width:50px; height:50px;
+    border-radius:50%;
+    background:#16233a;
+    color:#fff;
+    border:none;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 10px 24px rgba(0,0,0,.3);
+    cursor:pointer;
+  }
+  .demo-fab svg{width:22px; height:22px;}
+
+  .sheet-backdrop{
+    position:absolute; inset:0;
+    background:rgba(10,14,20,.5);
+    z-index:200;
+    display:none;
+    align-items:flex-end;
+  }
+  .sheet-backdrop.active{display:flex;}
+  .sheet{
+    background:#fff;
+    width:100%;
+    border-radius:24px 24px 0 0;
+    padding:10px 20px 26px;
+    max-height:80%;
+    overflow-y:auto;
+    animation:sheetUp .25s ease;
+  }
+  @keyframes sheetUp{ from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+  .sheet-handle{width:36px; height:4px; background:#e0e2e6; border-radius:4px; margin:8px auto 16px;}
+  .sheet h3{font-size:17px; font-weight:800; margin:0 0 4px;}
+  .sheet p.hint{font-size:13px; color:var(--text-secondary); margin:0 0 18px;}
+  .edge-item{
+    display:flex; align-items:center; gap:14px;
+    padding:13px 4px;
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
+  }
+  .edge-item:last-child{border-bottom:none;}
+  .edge-ico{
+    width:38px; height:38px; border-radius:10px;
+    background:var(--blue-tint); color:var(--blue-700);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .edge-ico svg{width:18px; height:18px;}
+  .edge-t{font-size:14.5px; font-weight:700; margin:0 0 2px;}
+  .edge-s{font-size:12.5px; color:var(--text-secondary); margin:0;}
+
+  /* ---------- Edge case overlay screen ---------- */
+  .edge-overlay{
+    position:absolute; inset:0; top:46px;
+    background:var(--bg-screen);
+    z-index:150;
+    display:none;
+    flex-direction:column;
+    overflow-y:auto;
+  }
+  .edge-overlay.active{display:flex;}
+  .edge-tag{
+    display:inline-flex; align-items:center; gap:6px;
+    background:#16233a; color:#fff;
+    font-size:11.5px; font-weight:700;
+    padding:5px 11px; border-radius:var(--radius-full);
+    margin-bottom:14px;
+  }
+
+  .toast{
+    position:absolute; left:20px; right:20px; bottom:22px;
+    background:#16233a; color:#fff;
+    padding:12px 16px; border-radius:14px;
+    font-size:13.5px; font-weight:600;
+    text-align:center;
+    box-shadow:var(--shadow-pop);
+    z-index:300;
+    opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    transform:translateY(8px);
+  }
+  .toast.show{opacity:1; transform:translateY(0);}
+
+  .caption{
+    font-size:12px; color:var(--text-tertiary);
+    text-align:center; margin-top:14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="notch"></div>
+  <div class="statusbar">
+    <span id="clock">9:41</span>
+    <span class="icons">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><rect x="0" y="7" width="3" height="5" rx="0.5" fill="#16233a"/><rect x="5" y="5" width="3" height="7" rx="0.5" fill="#16233a"/><rect x="10" y="3" width="3" height="9" rx="0.5" fill="#16233a"/><rect x="15" y="0" width="3" height="12" rx="0.5" fill="#16233a"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M8 9.5a1.4 1.4 0 100 2.8 1.4 1.4 0 000-2.8z" fill="#16233a"/><path d="M8 6.2c1.6 0 3 .6 4.1 1.6l-1.3 1.3A4 4 0 008 8a4 4 0 00-2.8 1.1L3.9 7.8A6 6 0 018 6.2z" fill="#16233a"/><path d="M8 2.5c2.6 0 5 1 6.8 2.7l-1.3 1.3A8 8 0 008 4.5a8 8 0 00-5.5 2l-1.3-1.3A10 10 0 018 2.5z" fill="#16233a"/></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#16233a" stroke-width="1"/><rect x="2.5" y="2.5" width="16" height="7" rx="1.3" fill="#16233a"/><rect x="22" y="4" width="1.5" height="4" rx="0.7" fill="#16233a"/></svg>
+    </span>
+  </div>
+
+  <div class="screens" id="screens">
+
+    <!-- ============ SCREEN 01 — CANCELLATION ============ -->
+    <section class="screen active" data-screen="1">
+      <div class="content" style="padding-top:28px;">
+        <div class="alert-box">
+          <div class="alert-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm0 6.5a1.2 1.2 0 011.2 1.2v4.6a1.2 1.2 0 01-2.4 0V9.7A1.2 1.2 0 0112 8.5zm0 9.3a1.35 1.35 0 110-2.7 1.35 1.35 0 010 2.7z"/></svg>
+          </div>
+          <div>
+            <p class="alert-title">Flight cancelled</p>
+            <p class="alert-sub">6E-2047 • Bengaluru - Chennai</p>
+          </div>
+        </div>
+
+        <h1 class="page-h">Your 2:30 PM flight has been cancelled</h1>
+        <p class="page-p">We know you have somewhere to be. We're already putting together the best ways to get you to Chennai.</p>
+
+        <div class="flight-card">
+          <div class="flight-row">
+            <div>
+              <div class="flight-time struck">2:30 PM</div>
+              <div class="flight-code">BLR</div>
+            </div>
+            <div class="flight-mid">
+              <span class="plane">✈</span>
+              <div class="line"></div>
+            </div>
+            <div style="text-align:right;">
+              <div class="flight-time struck">3:45 PM</div>
+              <div class="flight-code">MAA</div>
+            </div>
+          </div>
+          <div class="flight-badges">
+            <span class="pill pill-red">Cancelled</span>
+            <span class="pill pill-gray">6E-2047</span>
+          </div>
+        </div>
+
+        <div class="deadline-box">
+          <div>
+            <p class="deadline-label">Event Deadline</p>
+            <p class="deadline-time">6:00 PM</p>
+          </div>
+          <span class="pill pill-red">7hr 29m left</span>
+        </div>
+      </div>
+
+      <div class="content" style="padding-top:0; margin-top:auto;">
+        <button class="btn btn-primary" onclick="goTo(2)">Find my best option</button>
+        <button class="btn-link" onclick="goTo(2)">View cancellation details</button>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 02 — CANCELLATION DETAILS ============ -->
+    <section class="screen" data-screen="2">
+      <div class="nav-header">
+        <button class="back-btn" onclick="goTo(1)"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="nav-title">Trip details</span>
+      </div>
+      <div class="content" style="display:flex; flex-direction:column; flex:1;">
+        <div class="flight-card" style="margin-bottom:22px;">
+          <div class="flight-row" style="align-items:flex-start;">
+            <div style="font-size:19px; font-weight:800; display:flex; align-items:center; gap:10px;">
+              BLR <span style="color:var(--text-tertiary); font-weight:600;">→</span> MAA
+            </div>
+            <span class="pill pill-red">Cancelled</span>
+          </div>
+          <p style="font-size:13.5px; color:var(--text-secondary); font-weight:600; margin:8px 0 0;">Today 2:30 PM</p>
+        </div>
+
+        <p class="section-label">Why?</p>
+        <p class="value-lg">Operational disruption</p>
+
+        <p class="section-label">Your options</p>
+
+        <div class="option-row" onclick="openRefundEdge()">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M7 8l-4 4 4 4" stroke="#2f6690" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12h11a5 5 0 005-5" stroke="#2f6690" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 16l4-4-4-4" stroke="#2f6690" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0"/></svg>
+          </div>
+          <div>
+            <p class="option-title">Change flight</p>
+            <p class="option-sub">Find an alternative today</p>
+          </div>
+          <span class="option-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+
+        <div class="option-row" onclick="openRefundEdge()">
+          <div class="option-icon neutral">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M20 7H4l1.5-3h13L20 7z" stroke="#16233a" stroke-width="1.8" stroke-linejoin="round"/><rect x="4" y="7" width="16" height="12" rx="1.5" stroke="#16233a" stroke-width="1.8"/><path d="M9 11.5l2.4 2.4L15.5 9.5" stroke="#16233a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <p class="option-title">Refund</p>
+            <p class="option-sub">Get your eligible refund</p>
+          </div>
+          <span class="option-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+
+        <div style="margin-top:auto;">
+          <button class="btn btn-primary" onclick="goTo(3)">See available flights</button>
+          <button class="btn-link" onclick="openRefundEdge()">Request a refund</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 03 — AI ANALYSIS ============ -->
+    <section class="screen" data-screen="3">
+      <div class="nav-header">
+        <button class="back-btn" onclick="goTo(2)"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="nav-title">Finding your options</span>
+      </div>
+      <div class="content" style="display:flex; flex-direction:column; flex:1;">
+        <span class="ai-pill">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 5.2L19 9l-5.4 1.8L12 16l-1.6-5.2L5 9l5.4-1.8L12 2z"/><path d="M19 14l.8 2.6L22.4 17l-2.6.8L19 20.4l-.8-2.6L15.6 17l2.6-.8L19 14z"/></svg>
+          AI Assisted
+        </span>
+
+        <h1 class="page-h">Finding the best way to get you there</h1>
+        <p class="page-p">We're checking available flights against your arrival deadline.</p>
+
+        <div class="checklist" id="analysisChecklist">
+          <div class="check-row"><span class="check-mark pending" data-i="0"></span><span>Your destination</span></div>
+          <div class="check-row"><span class="check-mark pending" data-i="1"></span><span>Event deadline</span></div>
+          <div class="check-row"><span class="check-mark pending" data-i="2"></span><span>Available flights</span></div>
+          <div class="check-row"><span class="check-mark pending" data-i="3"></span><span>Arrival time</span></div>
+          <div class="check-row"><span class="check-mark pending" data-i="4"></span><span>Connection risk</span></div>
+          <div class="check-row"><span class="check-mark pending" data-i="5"></span><span>Additional cost</span></div>
+        </div>
+
+        <div class="note-box">You're not expected to compare every flight. We'll shortlist the best options for you.</div>
+
+        <div style="margin-top:auto; padding-top:22px;">
+          <button class="btn btn-primary" onclick="goTo(4)">See best options</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 04 — FLIGHT OPTIONS ============ -->
+    <section class="screen" data-screen="4">
+      <div class="nav-header">
+        <button class="back-btn" onclick="goTo(3)"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="nav-title">Choose your flight</span>
+      </div>
+      <div class="content">
+        <div class="deadline-box">
+          <div>
+            <p class="deadline-label">Event Deadline</p>
+            <p class="deadline-time">6:00 PM</p>
+          </div>
+          <span class="pill pill-red">7hr 29m left</span>
+        </div>
+
+        <p style="font-size:14px; color:var(--text-secondary); font-weight:600; margin:0 0 16px;">3 flights found, ranked by arrival buffer</p>
+
+        <!-- Option A - Recommended -->
+        <div class="opt-card recommended">
+          <div class="opt-head">
+            <span class="pill pill-black">Recommended</span>
+            <span class="opt-fare">₹0 additional</span>
+          </div>
+          <div class="opt-times">
+            <span class="opt-time">11:45 AM</span>
+            <div class="flight-mid" style="padding:0 10px;">
+              <span class="dur">Direct 1h 15m</span>
+              <div class="line"></div>
+              <span class="plane">✈</span>
+            </div>
+            <span class="opt-time">1:00 PM</span>
+          </div>
+          <div class="opt-meta-grid">
+            <div>
+              <p class="opt-meta-label">Arrival Buffer</p>
+              <p class="opt-meta-val good">5 hr before event</p>
+            </div>
+            <div style="text-align:right;">
+              <p class="opt-meta-label">Reliability</p>
+              <p class="opt-meta-val">High</p>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <span class="why-pill" onclick="toggleWhy(this)">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 5.2L19 9l-5.4 1.8L12 16l-1.6-5.2L5 9l5.4-1.8L12 2z"/></svg>
+            Why this flight
+          </span>
+          <div class="reason-row why-detail">
+            <span class="check-mark done"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <p>Biggest safety margin of any option, on a route with a strong on time record at no extra cost.</p>
+          </div>
+          <button class="btn btn-primary" onclick="chooseFlight('A')">Choose this Flight</button>
+        </div>
+
+        <!-- Option B - Good alternative -->
+        <div class="opt-card">
+          <div class="opt-head">
+            <span class="pill pill-gray">Good alternative</span>
+            <span class="opt-fare">₹0 additional</span>
+          </div>
+          <div class="opt-times">
+            <span class="opt-time">1:20 PM</span>
+            <div class="flight-mid" style="padding:0 10px;">
+              <span class="dur">Direct 1h 15m</span>
+              <div class="line"></div>
+              <span class="plane">✈</span>
+            </div>
+            <span class="opt-time">2:35 PM</span>
+          </div>
+          <div class="opt-meta-grid" style="margin-bottom:16px;">
+            <div>
+              <p class="opt-meta-label">Buffer</p>
+              <p class="opt-meta-val">3h 25m</p>
+            </div>
+            <div style="text-align:right;">
+              <p class="opt-meta-label">Reliability</p>
+              <p class="opt-meta-val">High</p>
+            </div>
+          </div>
+          <div class="opt-footer">
+            <p>Solid backup if option A fills up</p>
+            <button class="btn-select" onclick="chooseFlight('B')">Select</button>
+          </div>
+        </div>
+
+        <!-- Option C - Risky -->
+        <div class="opt-card risky">
+          <div class="opt-head">
+            <span class="pill pill-amber">Risky</span>
+            <span class="opt-fare">₹0 additional</span>
+          </div>
+          <div class="opt-times">
+            <span class="opt-time">3:10 AM</span>
+            <div class="flight-mid" style="padding:0 10px;">
+              <span class="dur">Direct 1h 15m</span>
+              <div class="line"></div>
+              <span class="plane">✈</span>
+            </div>
+            <span class="opt-time">5:45 PM</span>
+          </div>
+          <div class="opt-meta-grid" style="margin-bottom:16px;">
+            <div>
+              <p class="opt-meta-label">Buffer</p>
+              <p class="opt-meta-val medium">15m</p>
+            </div>
+            <div style="text-align:right;">
+              <p class="opt-meta-label">Reliability</p>
+              <p class="opt-meta-val medium">Medium</p>
+            </div>
+          </div>
+          <div class="warn-inline">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L2 20h20L12 3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 9.5v4.2M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Any delay could cause you to miss your event
+          </div>
+          <div class="opt-footer">
+            <p>Only if earlier options are unavailable</p>
+            <button class="btn-select" onclick="chooseFlight('C')">Select</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 05 — AI RECOMMENDATION ============ -->
+    <section class="screen" data-screen="5">
+      <div class="nav-header">
+        <button class="back-btn" onclick="goTo(4)"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="nav-title">Recommendation</span>
+      </div>
+      <div class="content" style="display:flex; flex-direction:column; flex:1;">
+        <div class="reco-card">
+          <div class="opt-head">
+            <span class="pill pill-outline">✦ <span id="r5-badge">AI pick for your deadline</span></span>
+            <span class="opt-fare" id="r5-fare">₹0 additional</span>
+          </div>
+          <div class="opt-times">
+            <span class="opt-time" id="r5-dep">11:45 AM</span>
+            <div class="flight-mid" style="padding:0 10px;">
+              <span class="dur">Direct 1h 15m</span>
+              <div class="line"></div>
+              <span class="plane">✈</span>
+            </div>
+            <span class="opt-time" id="r5-arr">1:00 PM</span>
+          </div>
+          <div class="opt-meta-grid">
+            <div>
+              <p class="opt-meta-label">Arrival Buffer</p>
+              <p class="opt-meta-val good" id="r5-buffer">5 hr before event</p>
+            </div>
+            <div style="text-align:right;">
+              <p class="opt-meta-label">Reliability</p>
+              <p class="opt-meta-val" id="r5-reliab">High</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="checklist" id="r5-checklist" style="margin-top:4px; margin-bottom:18px;"></div>
+
+        <div class="note-box" id="r5-compare"></div>
+
+        <div style="margin-top:auto; padding-top:22px;">
+          <button class="btn btn-dark" onclick="goTo(6)">Review this flight</button>
+          <button class="btn-link" onclick="goTo(4)">Compare all options again</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 06 — REVIEW & CONFIRM ============ -->
+    <section class="screen" data-screen="6">
+      <div class="nav-header">
+        <button class="back-btn" onclick="goTo(5)"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="nav-title">Review</span>
+      </div>
+      <div class="content" style="display:flex; flex-direction:column; flex:1;">
+        <p class="section-label" style="text-transform:none; font-size:13px;">New flight</p>
+
+        <div class="flight-card">
+          <div class="flight-row">
+            <div>
+              <div class="flight-time" id="r6-dep">2:30 PM</div>
+              <div class="flight-code">BLR</div>
+            </div>
+            <div class="flight-mid">
+              <span class="dur" id="r6-code">6E 512 - Direct</span>
+              <div class="line"></div>
+              <span class="plane">✈</span>
+            </div>
+            <div style="text-align:right;">
+              <div class="flight-time" id="r6-arr">3:45 PM</div>
+              <div class="flight-code">MAA</div>
+            </div>
+          </div>
+          <div class="flight-badges" id="r6-fare-badge">
+            <span class="pill pill-amber">2 seats left at this fare</span>
+          </div>
+        </div>
+
+        <p class="section-label" style="text-transform:none; font-size:13px;">Details</p>
+        <div class="detail-card">
+          <div class="detail-row"><span class="k">Fare Difference</span><span class="v green" id="r6-farediff">₹0</span></div>
+          <div class="detail-row"><span class="k">Checked Baggage</span><span class="v" id="r6-bag">Transferred automatically</span></div>
+          <div class="detail-row"><span class="k">Arrival Buffer</span><span class="v" id="r6-buffer">5h before your event</span></div>
+          <div class="detail-row"><span class="k">Seat</span><span class="v">Auto assigned, window preferred</span></div>
+        </div>
+
+        <div class="deadline-box">
+          <div>
+            <p class="deadline-label">Event Deadline</p>
+            <p class="deadline-time">6:00 PM</p>
+          </div>
+          <span class="pill pill-blue" id="r6-status">On Track</span>
+        </div>
+
+        <div style="margin-top:auto;">
+          <button class="btn btn-dark" onclick="confirmFlight()">Confirm new flight</button>
+          <button class="btn-link" onclick="goTo(5)">Go back to options</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 07 — CONFIRMATION ============ -->
+    <section class="screen" data-screen="7">
+      <div class="nav-header">
+        <button class="back-btn" onclick="goTo(6)"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="nav-title">Success</span>
+      </div>
+      <div class="content" style="display:flex; flex-direction:column; flex:1;">
+        <div class="success-wrap">
+          <div class="success-icon-wrap">
+            <span class="spark" style="left:6px; top:8px; font-size:18px;">✦</span>
+            <span class="spark" style="left:26px; top:38px; font-size:14px; opacity:.35;">✦</span>
+            <span class="spark" style="right:26px; top:14px; font-size:14px; opacity:.35;">✦</span>
+            <span class="spark" style="right:6px; top:44px; font-size:18px;">✦</span>
+            <div class="success-circle">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+          <h1 class="success-title">You're all set</h1>
+          <p class="success-sub">Your new flight is confirmed</p>
+        </div>
+
+        <div class="flight-card">
+          <div class="flight-row">
+            <div>
+              <div class="flight-time" id="r7-dep">2:30 PM</div>
+              <div class="flight-code">BLR</div>
+            </div>
+            <div class="flight-mid">
+              <span class="dur" id="r7-code">6E 512 - Direct</span>
+              <div class="line"></div>
+              <span class="plane">✈</span>
+            </div>
+            <div style="text-align:right;">
+              <div class="flight-time" id="r7-arr">3:45 PM</div>
+              <div class="flight-code">MAA</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="buffer-note">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.4 8.7-8 10-4.6-1.3-8-5-8-10V6l8-4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          <div>
+            <p class="t" id="r7-buffer-title">5-hour buffer before your event</p>
+            <p class="d">You should reach Chennai well ahead of your 6:00 PM event.</p>
+          </div>
+        </div>
+
+        <div style="margin-top:auto;">
+          <button class="btn btn-primary" onclick="goTo(8)">View boarding pass</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 08 — NEXT STEPS ============ -->
+    <section class="screen" data-screen="8">
+      <div class="nav-header">
+        <button class="back-btn" onclick="goTo(7)"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="nav-title">What happens next</span>
+      </div>
+      <div class="content">
+        <p class="section-label" style="text-transform:none; font-size:14px; font-weight:700; color:var(--text-secondary); margin-bottom:20px;">Taken care of automatically</p>
+
+        <div class="step-row">
+          <div class="step-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="7" width="16" height="12" rx="1.6" stroke="#16233a" stroke-width="1.7"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7" stroke="#16233a" stroke-width="1.7"/></svg></div>
+          <div>
+            <p class="step-title">Checked baggage <span id="r8-bag-title">transferred</span></p>
+            <p class="step-sub" id="r8-bag-sub">Your bag has been moved to flight 6E 512. No need to recheck it.</p>
+          </div>
+        </div>
+
+        <div class="step-row">
+          <div class="step-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7" stroke="#16233a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke="#16233a" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
+          <div>
+            <p class="step-title">Gate details on the way</p>
+            <p class="step-sub">We'll send your gate number 60 minutes before departure.</p>
+          </div>
+        </div>
+
+        <div class="step-row">
+          <div class="step-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#16233a" stroke-width="1.7"/><path d="M12 8v4l3 2" stroke="#16233a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div>
+            <p class="step-title">Check in closes <span id="r8-checkin">11:15 AM</span></p>
+            <p class="step-sub">Counter B, Terminal 1</p>
+          </div>
+        </div>
+
+        <div class="step-row">
+          <div class="step-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9a2 2 0 012-2h12a2 2 0 012 2v1.2a1.6 1.6 0 000 3.2V15a2 2 0 01-2 2H6a2 2 0 01-2-2v-1.6a1.6 1.6 0 000-3.2V9z" stroke="#16233a" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 8v8" stroke="#16233a" stroke-width="1.7" stroke-dasharray="2 2"/></svg></div>
+          <div>
+            <p class="step-title">Boarding pass updated</p>
+            <p class="step-sub">Your existing boarding pass now reflects flight <span id="r8-flightno">6E 512</span>.</p>
+          </div>
+        </div>
+
+        <div class="talk-box">
+          <span class="t">Need something else?</span>
+          <span class="talk-link" onclick="showToast('Support chat would open here')">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            Talk to us
+          </span>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /screens -->
+
+  <!-- ===== Edge-case overlays ===== -->
+  <div class="edge-overlay" id="edgeRefund">
+    <div class="nav-header">
+      <button class="back-btn" onclick="closeEdge('edgeRefund')"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="nav-title">Refund</span>
+    </div>
+    <div class="content" style="display:flex; flex-direction:column; flex:1;">
+      <span class="edge-tag">Edge case · Refund option</span>
+      <h1 class="page-h">Your refund is eligible</h1>
+      <p class="page-p">Since 6E-2047 was cancelled by the airline, you qualify for a full refund instead of a replacement flight.</p>
+      <div class="detail-card">
+        <div class="detail-row"><span class="k">Ticket fare</span><span class="v">₹4,850</span></div>
+        <div class="detail-row"><span class="k">Cancellation fee</span><span class="v green">Waived</span></div>
+        <div class="detail-row"><span class="k">Refund amount</span><span class="v green">₹4,850</span></div>
+        <div class="detail-row"><span class="k">Processing time</span><span class="v">5-7 business days</span></div>
+      </div>
+      <div class="note-box">Choosing a refund cancels your trip to Chennai. You can still pick a replacement flight instead.</div>
+      <div style="margin-top:auto; padding-top:18px;">
+        <button class="btn btn-primary" onclick="showToast('Refund request submitted'); closeEdge('edgeRefund')">Confirm refund</button>
+        <button class="btn-link" onclick="closeEdge('edgeRefund')">Go back, find a flight instead</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="edge-overlay" id="edgeNoFlights">
+    <div class="nav-header">
+      <button class="back-btn" onclick="closeEdge('edgeNoFlights')"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="nav-title">Choose your flight</span>
+    </div>
+    <div class="content" style="display:flex; flex-direction:column; flex:1;">
+      <span class="edge-tag">Edge case · No safe flight</span>
+      <div class="deadline-box">
+        <div>
+          <p class="deadline-label">Event Deadline</p>
+          <p class="deadline-time">6:00 PM</p>
+        </div>
+        <span class="pill pill-red">45m left</span>
+      </div>
+      <div class="alert-box" style="margin-top:4px;">
+        <div class="alert-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm0 6.5a1.2 1.2 0 011.2 1.2v4.6a1.2 1.2 0 01-2.4 0V9.7A1.2 1.2 0 0112 8.5zm0 9.3a1.35 1.35 0 110-2.7 1.35 1.35 0 010 2.7z"/></svg>
+        </div>
+        <div>
+          <p class="alert-title" style="font-size:15.5px;">No flight can make it in time</p>
+          <p class="alert-sub">Every remaining flight to Chennai lands after your 6:00 PM event.</p>
+        </div>
+      </div>
+      <p class="section-label">What you can do instead</p>
+      <div class="option-row" onclick="closeEdge('edgeNoFlights'); openRefundEdge();">
+        <div class="option-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M20 7H4l1.5-3h13L20 7z" stroke="#2f6690" stroke-width="1.8" stroke-linejoin="round"/><rect x="4" y="7" width="16" height="12" rx="1.5" stroke="#2f6690" stroke-width="1.8"/></svg></div>
+        <div><p class="option-title">Request a refund</p><p class="option-sub">Full amount, fee waived</p></div>
+        <span class="option-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+      <div class="option-row" onclick="showToast('We\'ll notify your contact at the event')">
+        <div class="option-icon neutral"><svg viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.5 8.5 0 01-8.5 8.5H12l-5 2 1-4A8.5 8.5 0 1121 11.5z" stroke="#16233a" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
+        <div><p class="option-title">Notify the event organiser</p><p class="option-sub">Let them know you'll be delayed</p></div>
+        <span class="option-chev"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+      <div style="margin-top:auto; padding-top:18px;">
+        <button class="btn-outline btn" onclick="closeEdge('edgeNoFlights')">Back to flight search</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Edge-case launcher ===== -->
+  <button class="demo-fab" onclick="toggleSheet(true)" title="Preview edge cases">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l1.6 5.2L19 9l-5.4 1.8L12 16l-1.6-5.2L5 9l5.4-1.8L12 2z" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/><circle cx="18.5" cy="17.5" r="2.5" stroke="#fff" stroke-width="1.4"/></svg>
+  </button>
+
+  <div class="sheet-backdrop" id="sheetBackdrop" onclick="if(event.target===this) toggleSheet(false)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <h3>Preview edge cases</h3>
+      <p class="hint">These are interactive states outside the main 8-screen journey.</p>
+
+      <div class="edge-item" onclick="toggleSheet(false); goTo(4); setTimeout(()=>chooseFlight('C'),150);">
+        <div class="edge-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3L2 20h20L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 9.5v4.2M12 17h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
+        <div><p class="edge-t">Risky flight</p><p class="edge-s">15-minute buffer, medium reliability</p></div>
+      </div>
+
+      <div class="edge-item" onclick="toggleSheet(false); goTo(4); setTimeout(()=>chooseFlight('B'),150);">
+        <div class="edge-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 6.5c0-1.9-2.2-3-5-3s-5 1.4-5 3 2.2 2.7 5 3 5 1.1 5 3-2.2 3-5 3-5-1.1-5-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
+        <div><p class="edge-t">Extra fare</p><p class="edge-s">Alternative flight with a fare difference</p></div>
+      </div>
+
+      <div class="edge-item" onclick="toggleSheet(false); openEdge('edgeNoFlights');">
+        <div class="edge-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/></svg></div>
+        <div><p class="edge-t">No safe flight</p><p class="edge-s">Every remaining flight misses the deadline</p></div>
+      </div>
+
+      <div class="edge-item" onclick="toggleSheet(false); openRefundEdge();">
+        <div class="edge-ico"><svg viewBox="0 0 24 24" fill="none"><path d="M20 7H4l1.5-3h13L20 7z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><rect x="4" y="7" width="16" height="12" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg></div>
+        <div><p class="edge-t">Refund option</p><p class="edge-s">Full refund instead of rebooking</p></div>
+      </div>
+
+      <div class="edge-item" onclick="toggleSheet(false); goTo(4); setTimeout(()=>chooseFlight('C'),150); showToast('This route needs a baggage recheck — see Review');">
+        <div class="edge-ico"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="7" width="16" height="12" rx="1.6" stroke="currentColor" stroke-width="1.6"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7" stroke="currentColor" stroke-width="1.6"/></svg></div>
+        <div><p class="edge-t">Baggage re-check warning</p><p class="edge-s">Connecting itinerary needs a manual recheck</p></div>
+      </div>
+
+      <button class="btn btn-outline" style="margin-top:16px;" onclick="resetProto()">Reset to Screen 1</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+  // ---------------- Flight data model ----------------
+  const FLIGHTS = {
+    A: {
+      key:'A', dep:'11:45 AM', arr:'1:00 PM', flightNo:'6E 512', code:'6E 512 - Direct',
+      buffer:'5 hr before event', bufferReview:'5h before your event', bufferShort:'5-hour',
+      reliability:'High', reliabilityClass:'good', fare:'₹0 additional', fareClass:'',
+      fareDiff:'₹0', fareDiffClass:'green', bag:'Transferred automatically', bagTitle:'transferred',
+      bagSub:'Your bag has been moved to flight FLIGHTNO. No need to recheck it.',
+      checkin:'11:15 AM', status:'On Track', statusClass:'pill-blue', risky:false,
+      seatNote:'2 seats left at this fare',
+      badge:'AI pick for your deadline',
+      reasons:[
+        'Arrives at 1:00 PM — a 5-hour buffer before your 6:00 PM event',
+        'Direct flight with high on-time reliability over the last 30 days.',
+        'No fare difference from your original ticket.'
+      ],
+      compare:"For comparison — Option B lands with a 3h 25m buffer, and option C leaves only 15 minutes, which we flagged as risky."
+    },
+    B: {
+      key:'B', dep:'1:20 PM', arr:'2:35 PM', flightNo:'6E 498', code:'6E 498 - Direct',
+      buffer:'3h 25m before event', bufferReview:'3h 25m before your event', bufferShort:'3-hour 25-minute',
+      reliability:'High', reliabilityClass:'good', fare:'₹1,200 additional', fareClass:'paid',
+      fareDiff:'+ ₹1,200', fareDiffClass:'amber', bag:'Transferred automatically', bagTitle:'transferred',
+      bagSub:'Your bag has been moved to flight FLIGHTNO. No need to recheck it.',
+      checkin:'12:50 PM', status:'On Track', statusClass:'pill-blue', risky:false,
+      seatNote:'6 seats left at this fare',
+      badge:'Good alternative — a step down from our top pick',
+      reasons:[
+        'Arrives at 2:35 PM — a 3h 25m buffer before your 6:00 PM event',
+        'Direct flight with high on-time reliability, one departure later than Option A.',
+        'This fare carries a ₹1,200 difference from your original ticket.'
+      ],
+      compare:"For comparison — Option A lands with a 5-hour buffer at ₹0 additional, and option C leaves only 15 minutes, which we flagged as risky."
+    },
+    C: {
+      key:'C', dep:'3:10 AM', arr:'5:45 PM', flightNo:'6E 233', code:'6E 233 - Direct',
+      buffer:'15m before event', bufferReview:'15m before your event', bufferShort:'15-minute',
+      reliability:'Medium', reliabilityClass:'medium', fare:'₹0 additional', fareClass:'',
+      fareDiff:'₹0', fareDiffClass:'green', bag:'Recheck required', bagTitle:'needs a recheck',
+      bagSub:'This itinerary changes carriers — please recheck your bag at the counter for flight FLIGHTNO.',
+      checkin:'2:40 AM', status:'At risk', statusClass:'pill-amber', risky:true,
+      seatNote:'Last seats at this fare',
+      badge:'Only option left before your deadline',
+      reasons:[
+        'Arrives at 5:45 PM — just 15 minutes before your 6:00 PM event',
+        'Medium reliability on this route over the last 30 days — any delay risks missing your event.',
+        'No fare difference, but this route requires a baggage recheck.'
+      ],
+      compare:"For comparison — Option A lands with a 5-hour buffer and option B with 3h 25m. We only recommend this if earlier options are unavailable."
+    }
+  };
+
+  let currentFlight = FLIGHTS.A;
+  let currentScreen = 1;
+  let history = [1];
+
+  function goTo(n, push=true){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    const target = document.querySelector('.screen[data-screen="'+n+'"]');
+    target.classList.add('active');
+    target.scrollTop = 0;
+    currentScreen = n;
+    if(push) history.push(n);
+    if(n===3){ runAnalysis(); }
+  }
+
+  function runAnalysis(){
+    document.querySelectorAll('#analysisChecklist .check-mark').forEach(el=>{
+      el.classList.remove('done'); el.classList.add('pending'); el.innerHTML='';
+    });
+    const rows = document.querySelectorAll('#analysisChecklist .check-mark');
+    rows.forEach((el, i)=>{
+      setTimeout(()=>{
+        el.classList.remove('pending'); el.classList.add('done');
+        el.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      }, 140*i);
+    });
+  }
+
+  function toggleWhy(el){
+    const detail = el.parentElement.querySelector('.why-detail');
+    detail.style.display = detail.style.display==='none' ? 'flex' : (detail.style.display? 'none':'flex');
+  }
+
+  function chooseFlight(key){
+    currentFlight = FLIGHTS[key];
+    renderRecommendation();
+    renderReview();
+    renderSuccess();
+    renderNextSteps();
+    goTo(5);
+  }
+
+  function renderRecommendation(){
+    const f = currentFlight;
+    document.getElementById('r5-badge').textContent = f.badge;
+    document.getElementById('r5-fare').textContent = f.fare;
+    document.getElementById('r5-fare').className = 'opt-fare' + (f.fareClass? ' '+f.fareClass:'');
+    document.getElementById('r5-dep').textContent = f.dep;
+    document.getElementById('r5-arr').textContent = f.arr;
+    document.getElementById('r5-buffer').textContent = f.buffer;
+    document.getElementById('r5-buffer').className = 'opt-meta-val ' + f.reliabilityClass;
+    document.getElementById('r5-reliab').textContent = f.reliability;
+    document.getElementById('r5-reliab').className = 'opt-meta-val' + (f.risky? ' medium':'');
+    document.getElementById('r5-compare').textContent = f.compare;
+
+    const list = document.getElementById('r5-checklist');
+    list.innerHTML = f.reasons.map(r=>`
+      <div class="check-row">
+        <span class="check-mark done"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span style="font-size:14.5px; line-height:1.45;">${r}</span>
+      </div>`).join('');
+  }
+
+  function renderReview(){
+    const f = currentFlight;
+    document.getElementById('r6-dep').textContent = f.dep;
+    document.getElementById('r6-arr').textContent = f.arr;
+    document.getElementById('r6-code').textContent = f.code;
+    document.getElementById('r6-farediff').textContent = f.fareDiff;
+    document.getElementById('r6-farediff').className = 'v ' + f.fareDiffClass;
+    document.getElementById('r6-bag').textContent = f.bag;
+    document.getElementById('r6-buffer').textContent = f.bufferReview;
+    document.getElementById('r6-status').textContent = f.status;
+    document.getElementById('r6-status').className = 'pill ' + f.statusClass;
+    document.getElementById('r6-fare-badge').innerHTML = '<span class="pill pill-amber">'+f.seatNote+'</span>';
+  }
+
+  function renderSuccess(){
+    const f = currentFlight;
+    document.getElementById('r7-dep').textContent = f.dep;
+    document.getElementById('r7-arr').textContent = f.arr;
+    document.getElementById('r7-code').textContent = f.code;
+    document.getElementById('r7-buffer-title').textContent = f.bufferShort + ' buffer before your event';
+  }
+
+  function renderNextSteps(){
+    const f = currentFlight;
+    document.getElementById('r8-bag-title').textContent = f.bagTitle;
+    document.getElementById('r8-bag-sub').textContent = f.bagSub.replace('FLIGHTNO', f.flightNo);
+    document.getElementById('r8-checkin').textContent = f.checkin;
+    document.getElementById('r8-flightno').textContent = f.flightNo;
+  }
+
+  function confirmFlight(){
+    goTo(7);
+    showToast('Flight confirmed');
+  }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  // ---------------- Edge case overlays ----------------
+  function openEdge(id){
+    document.getElementById(id).classList.add('active');
+  }
+  function closeEdge(id){
+    document.getElementById(id).classList.remove('active');
+  }
+  function openRefundEdge(){ openEdge('edgeRefund'); }
+
+  function toggleSheet(open){
+    document.getElementById('sheetBackdrop').classList.toggle('active', open);
+  }
+
+  function resetProto(){
+    currentFlight = FLIGHTS.A;
+    document.querySelectorAll('.edge-overlay').forEach(e=>e.classList.remove('active'));
+    goTo(1, false);
+    history = [1];
+  }
+
+  // init
+  renderRecommendation();
+  renderReview();
+  renderSuccess();
+  renderNextSteps();
+
+  // live clock in status bar (cosmetic)
+  function tick(){
+    const d = new Date();
+    let h = d.getHours()%12; if(h===0) h=12;
+    const m = d.getMinutes().toString().padStart(2,'0');
+    document.getElementById('clock').textContent = h+':'+m;
+  }
+  tick(); setInterval(tick, 30000);
+</script>
+</body>
+</html>
